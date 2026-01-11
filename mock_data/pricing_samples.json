@@ -1,0 +1,264 @@
+{
+  "aws": [
+    {
+      "provider": "AWS",
+      "region": "us-east-1",
+      "gpu_model": "A100",
+      "price_per_hour": 32.77,
+      "availability": 0.95,
+      "instance_type": "p4d.24xlarge",
+      "gpu_count": 8,
+      "memory_gb": 320
+    },
+    {
+      "provider": "AWS",
+      "region": "us-west-2",
+      "gpu_model": "A100",
+      "price_per_hour": 32.77,
+      "availability": 0.92,
+      "instance_type": "p4d.24xlarge",
+      "gpu_count": 8,
+      "memory_gb": 320
+    },
+    {
+      "provider": "AWS",
+      "region": "us-east-1",
+      "gpu_model": "V100",
+      "price_per_hour": 12.24,
+      "availability": 0.98,
+      "instance_type": "p3.8xlarge",
+      "gpu_count": 4,
+      "memory_gb": 64
+    },
+    {
+      "provider": "AWS",
+      "region": "eu-west-1",
+      "gpu_model": "T4",
+      "price_per_hour": 1.686,
+      "availability": 0.99,
+      "instance_type": "g4dn.xlarge",
+      "gpu_count": 1,
+      "memory_gb": 16
+    }
+  ],
+  "gcp": [
+    {
+      "provider": "GCP",
+      "region": "us-central1",
+      "gpu_model": "A100",
+      "price_per_hour": 12.25,
+      "availability": 0.94,
+      "instance_type": "a2-highgpu-1g",
+      "gpu_count": 1,
+      "memory_gb": 85
+    },
+    {
+      "provider": "GCP",
+      "region": "us-west1",
+      "gpu_model": "A100",
+      "price_per_hour": 12.50,
+      "availability": 0.91,
+      "instance_type": "a2-highgpu-1g",
+      "gpu_count": 1,
+      "memory_gb": 85
+    },
+    {
+      "provider": "GCP",
+      "region": "us-central1",
+      "gpu_model": "V100",
+      "price_per_hour": 2.48,
+      "availability": 0.96,
+      "instance_type": "n1-standard-8-v100",
+      "gpu_count": 1,
+      "memory_gb": 30
+    },
+    {
+      "provider": "GCP",
+      "region": "asia-southeast1",
+      "gpu_model": "T4",
+      "price_per_hour": 0.35,
+      "availability": 0.97,
+      "instance_type": "n1-standard-4-t4",
+      "gpu_count": 1,
+      "memory_gb": 15
+    }
+  ],
+  "azure": [
+    {
+      "provider": "Azure",
+      "region": "eastus",
+      "gpu_model": "A100",
+      "price_per_hour": 27.20,
+      "availability": 0.89,
+      "instance_type": "Standard_ND96asr_v4",
+      "gpu_count": 8,
+      "memory_gb": 900
+    },
+    {
+      "provider": "Azure",
+      "region": "westus2",
+      "gpu_model": "A100",
+      "price_per_hour": 27.20,
+      "availability": 0.87,
+      "instance_type": "Standard_ND96asr_v4",
+      "gpu_count": 8,
+      "memory_gb": 900
+    },
+    {
+      "provider": "Azure",
+      "region": "eastus",
+      "gpu_model": "V100",
+      "price_per_hour": 9.36,
+      "availability": 0.93,
+      "instance_type": "Standard_NC6s_v3",
+      "gpu_count": 1,
+      "memory_gb": 112
+    },
+    {
+      "provider": "Azure",
+      "region": "northeurope",
+      "gpu_model": "T4",
+      "price_per_hour": 0.526,
+      "availability": 0.95,
+      "instance_type": "Standard_NC4as_T4_v3",
+      "gpu_count": 1,
+      "memory_gb": 28
+    }
+  ],
+  "runpod": [
+    {
+      "provider": "RunPod",
+      "region": "us-east",
+      "gpu_model": "A100",
+      "price_per_hour": 1.89,
+      "availability": 0.78,
+      "instance_type": "A100 80GB",
+      "gpu_count": 1,
+      "memory_gb": 80
+    },
+    {
+      "provider": "RunPod",
+      "region": "us-west",
+      "gpu_model": "A100",
+      "price_per_hour": 1.99,
+      "availability": 0.75,
+      "instance_type": "A100 80GB",
+      "gpu_count": 1,
+      "memory_gb": 80
+    },
+    {
+      "provider": "RunPod",
+      "region": "eu-central",
+      "gpu_model": "A100",
+      "price_per_hour": 2.09,
+      "availability": 0.72,
+      "instance_type": "A100 80GB",
+      "gpu_count": 1,
+      "memory_gb": 80
+    },
+    {
+      "provider": "RunPod",
+      "region": "us-east",
+      "gpu_model": "RTX 4090",
+      "price_per_hour": 0.69,
+      "availability": 0.85,
+      "instance_type": "RTX 4090",
+      "gpu_count": 1,
+      "memory_gb": 24
+    },
+    {
+      "provider": "RunPod",
+      "region": "us-east",
+      "gpu_model": "RTX 3090",
+      "price_per_hour": 0.39,
+      "availability": 0.88,
+      "instance_type": "RTX 3090",
+      "gpu_count": 1,
+      "memory_gb": 24
+    }
+  ],
+  "vast": [
+    {
+      "provider": "Vast.ai",
+      "region": "us-central",
+      "gpu_model": "A100",
+      "price_per_hour": 1.29,
+      "availability": 0.65,
+      "instance_type": "A100 PCIe",
+      "gpu_count": 1,
+      "memory_gb": 40
+    },
+    {
+      "provider": "Vast.ai",
+      "region": "us-east",
+      "gpu_model": "A100",
+      "price_per_hour": 1.39,
+      "availability": 0.62,
+      "instance_type": "A100 PCIe",
+      "gpu_count": 1,
+      "memory_gb": 40
+    },
+    {
+      "provider": "Vast.ai",
+      "region": "europe",
+      "gpu_model": "RTX 3090",
+      "price_per_hour": 0.28,
+      "availability": 0.70,
+      "instance_type": "RTX 3090",
+      "gpu_count": 1,
+      "memory_gb": 24
+    },
+    {
+      "provider": "Vast.ai",
+      "region": "us-west",
+      "gpu_model": "RTX 4090",
+      "price_per_hour": 0.59,
+      "availability": 0.68,
+      "instance_type": "RTX 4090",
+      "gpu_count": 1,
+      "memory_gb": 24
+    }
+  ],
+  "lambda": [
+    {
+      "provider": "Lambda Labs",
+      "region": "us-tx",
+      "gpu_model": "A100",
+      "price_per_hour": 1.10,
+      "availability": 0.55,
+      "instance_type": "gpu_1x_a100_sxm4",
+      "gpu_count": 1,
+      "memory_gb": 80
+    },
+    {
+      "provider": "Lambda Labs",
+      "region": "us-ca",
+      "gpu_model": "A100",
+      "price_per_hour": 1.10,
+      "availability": 0.52,
+      "instance_type": "gpu_1x_a100_sxm4",
+      "gpu_count": 1,
+      "memory_gb": 80
+    },
+    {
+      "provider": "Lambda Labs",
+      "region": "us-tx",
+      "gpu_model": "A10",
+      "price_per_hour": 0.60,
+      "availability": 0.82,
+      "instance_type": "gpu_1x_a10",
+      "gpu_count": 1,
+      "memory_gb": 24
+    },
+    {
+      "provider": "Lambda Labs",
+      "region": "us-tx",
+      "gpu_model": "RTX 6000 Ada",
+      "price_per_hour": 0.80,
+      "availability": 0.75,
+      "instance_type": "gpu_1x_rtx6000_ada",
+      "gpu_count": 1,
+      "memory_gb": 48
+    }
+  ]
+}
