@@ -1,5 +1,5 @@
 import { type ReactNode, useState, useEffect } from 'react'
-import { LayoutDashboard, TrendingDown, DollarSign, Calculator, Moon, Sun, Database, Activity, BookOpen, Brain } from 'lucide-react'
+import { LayoutDashboard, TrendingDown, DollarSign, Calculator, Moon, Sun, Database, Activity, Brain } from 'lucide-react'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { cn } from '../lib/utils'
@@ -39,7 +39,6 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
     { id: 'arbitrage', label: 'Arbitrage', icon: TrendingDown },
     { id: 'prices', label: 'Live Prices', icon: DollarSign },
     { id: 'calculator', label: 'Calculator', icon: Calculator },
-    { id: 'methodology', label: 'Methodology', icon: BookOpen },
   ]
 
   const formatTime = (seconds: number) => {

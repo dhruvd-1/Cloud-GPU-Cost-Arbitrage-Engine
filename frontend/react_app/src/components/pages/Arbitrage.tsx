@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrendingDown, Percent, Info, ChevronDown, Download, Zap, Shield, AlertTriangle } from 'lucide-react'
+import { TrendingDown, Percent, Info, ChevronDown, Download, Zap, Shield, AlertTriangle, Clock, CheckCircle, XCircle, BarChart3, Users, Calendar, Activity, Target } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
@@ -14,7 +14,12 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
   const [selectedGPU, setSelectedGPU] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'savings' | 'difference'>('savings')
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
+  const [expandedDecision, setExpandedDecision] = useState<string | null>(null)
   const [showCostPerTFLOP, setShowCostPerTFLOP] = useState(false)
+  
+  // Cluster configuration state
+  const [gpuCount, setGpuCount] = useState(1)
+  const [durationDays, setDurationDays] = useState(30)
 
   const sortedOpportunities = [...opportunities].sort((a, b) => {
     if (sortBy === 'savings') {
@@ -65,6 +70,66 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
     if (opp.cheapest_provider.region !== opp.most_expensive_provider.region) return 'Regional pricing varies based on datacenter operational costs and local market conditions.'
     return 'Market inefficiency detected: providers haven\'t aligned pricing for this GPU model yet.'
   }
+
+  const getStabilityColor = (stability: string) => {
+    switch (stability) {
+      case 'High Stability':
+        return 'bg-green-100 text-green-700 border-green-200'
+      case 'Moderate Stability':
+        return 'bg-amber-100 text-amber-700 border-amber-200'
+      case 'Low Stability':
+        return 'bg-red-100 text-red-700 border-red-200'
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200'
+    }
+  }
+  
+  const getLifecycleStatusColor = (status: string) => {
+    switch (status) {
+      case 'Active':
+        return 'bg-green-100 text-green-700 border-green-200'
+      case 'Declining':
+        return 'bg-amber-100 text-amber-700 border-amber-200'
+      case 'Expired':
+        return 'bg-red-100 text-red-700 border-red-200'
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200'
+    }
+  }
+  
+  const getDecayRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'Low':
+        return 'text-green-600'
+      case 'Medium':
+        return 'text-amber-600'
+      case 'High':
+        return 'text-red-600'
+      default:
+        return 'text-gray-600'
+    }
+  }
+  
+  const getOpportunityCostColor = (risk: string) => {
+    switch (risk) {
+      case 'Low':
+        return 'bg-green-100 text-green-700 border-green-200'
+      case 'Medium':
+        return 'bg-amber-100 text-amber-700 border-amber-200'
+      case 'High':
+        return 'bg-red-100 text-red-700 border-red-200'
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200'
+    }
+  }
+
+  const getConstraintsFromOpportunities = () => {
+    if (opportunities.length === 0) return null
+    const firstOpp = opportunities[0]
+    return firstOpp.constraints_applied || null
+  }
+
+  const constraints = getConstraintsFromOpportunities()
 
   return (
     <div className="space-y-6">
@@ -127,6 +192,96 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
           </Button>
         </div>
       </div>
+
+      {/* Constraints Applied Card */}
+      {constraints && (
+        <Card className="border-muted bg-muted/30">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <Shield className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm mb-2 text-foreground">Constraints Applied</h3>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Badge variant="outline" className="bg-background">
+                    <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
+                    Availability ≥ {(constraints.min_availability * 100).toFixed(0)}%
+                  </Badge>
+                  <Badge variant="outline" className="bg-background">
+                    <CheckCircle className="w-3 h-3 mr-1 text-green-600" />
+                    Reliability ≥ {constraints.min_reliability.toFixed(2)}
+                  </Badge>
+                  {opportunities[0]?.excluded_providers && opportunities[0].excluded_providers.length > 0 && (
+                    <Badge variant="outline" className="bg-background">
+                      <XCircle className="w-3 h-3 mr-1 text-red-600" />
+                      {opportunities[0].excluded_providers.length} provider{opportunities[0].excluded_providers.length !== 1 ? 's' : ''} excluded
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Cluster Configuration Card */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <Users className="w-5 h-5 text-primary mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm mb-3 text-foreground">Cluster Configuration</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    Number of GPUs
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={gpuCount}
+                      onChange={(e) => setGpuCount(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+                      className="w-20 px-3 py-1.5 text-sm border border-input rounded-md bg-background"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {gpuCount === 1 ? 'Single GPU' : `${gpuCount}x GPUs`}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Duration (days)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={durationDays}
+                      onChange={(e) => setDurationDays(Math.max(1, Math.min(365, parseInt(e.target.value) || 30)))}
+                      className="w-20 px-3 py-1.5 text-sm border border-input rounded-md bg-background"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {durationDays < 30 ? `${durationDays} days` : durationDays === 30 ? '1 month' : `~${Math.round(durationDays / 30)} months`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              {(gpuCount > 1 || durationDays !== 30) && (
+                <div className="mt-3 p-2 bg-background rounded-md border border-border">
+                  <p className="text-xs text-muted-foreground">
+                    <Info className="w-3 h-3 inline mr-1" />
+                    Cluster analysis will show total costs and amplified risks for {gpuCount}x GPU{gpuCount !== 1 ? 's' : ''} over {durationDays} day{durationDays !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Opportunities List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -221,27 +376,167 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
                   </div>
                 </div>
 
-                {/* Savings Breakdown */}
-                <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border">
-                  <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Hourly</div>
-                    <div className="font-bold text-sm">
-                      {formatCurrency(opp.price_difference_usd_per_hour)}
+                {/* Savings Breakdown with Confidence Intervals */}
+                <div className="space-y-3 pt-3 border-t border-border">
+                  {/* Cost Stability Label */}
+                  {opp.cost_stability && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Cost Stability</span>
+                      <Badge className={`text-xs border ${getStabilityColor(opp.cost_stability)}`}>
+                        {opp.cost_stability}
+                      </Badge>
                     </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Monthly</div>
-                    <div className="font-bold text-sm">
-                      {formatCurrency(opp.price_difference_usd_per_hour * 730)}
+                  )}
+
+                  {/* Confidence Intervals */}
+                  {opp.cost_estimate ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Estimated Monthly Cost</span>
+                        <span className="font-mono font-medium">
+                          {formatCurrency(opp.cost_estimate.monthly[0])} – {formatCurrency(opp.cost_estimate.monthly[1])}
+                        </span>
+                      </div>
+                      <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="absolute h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full"
+                          style={{ 
+                            left: '0%',
+                            right: `${Math.max(0, 100 - (opp.cost_estimate.volatility_factor * 100))}%`
+                          }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        Volatility: {(opp.cost_estimate.volatility_factor * 100).toFixed(1)}%
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Annual</div>
-                    <div className="font-bold text-sm text-green-500">
-                      {formatCurrency(opp.annual_savings_usd)}
+                  ) : (
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Hourly</div>
+                        <div className="font-bold text-sm">
+                          {formatCurrency(opp.price_difference_usd_per_hour)}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Monthly</div>
+                        <div className="font-bold text-sm">
+                          {formatCurrency(opp.price_difference_usd_per_hour * 730)}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Annual</div>
+                        <div className="font-bold text-sm text-green-500">
+                          {formatCurrency(opp.annual_savings_usd)}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Break-Even Analysis */}
+                  {opp.break_even && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
+                      <Clock className="w-4 h-4" />
+                      <span>{opp.break_even.interpretation}</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* NEW FEATURE 1: Arbitrage Lifecycle */}
+                {opp.arbitrage_lifecycle && (
+                  <div className="space-y-2 pt-3 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Activity className="w-3.5 h-3.5" />
+                        Arbitrage Status
+                      </span>
+                      <Badge className={`text-xs border ${getLifecycleStatusColor(opp.arbitrage_lifecycle.status)}`}>
+                        {opp.arbitrage_lifecycle.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Estimated Lifetime</span>
+                      <span className="font-semibold">
+                        ~{Math.round(opp.arbitrage_lifecycle.estimated_lifetime_days / 30)} month{Math.round(opp.arbitrage_lifecycle.estimated_lifetime_days / 30) !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Decay Risk</span>
+                      <span className={`font-semibold ${getDecayRiskColor(opp.arbitrage_lifecycle.decay_risk)}`}>
+                        {opp.arbitrage_lifecycle.decay_risk}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* NEW FEATURE 2: Deployment Strategy */}
+                {opp.deployment_strategy && (
+                  <Card className="mt-3 border-primary/30 bg-primary/5">
+                    <CardContent className="p-3">
+                      <div className="flex items-start gap-2">
+                        <Target className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 space-y-1">
+                          <h4 className="text-xs font-semibold text-foreground">Recommended Deployment Strategy</h4>
+                          <div className="text-sm font-bold text-primary">
+                            {opp.deployment_strategy.recommended}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {opp.deployment_strategy.reason}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* NEW FEATURE 3: Opportunity Cost */}
+                {opp.opportunity_cost && (
+                  <div className="mt-3 p-3 rounded-lg border border-border bg-background">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-muted-foreground">Opportunity Cost Risk</span>
+                      <Badge className={`text-xs border ${getOpportunityCostColor(opp.opportunity_cost.risk_level)}`}>
+                        {opp.opportunity_cost.risk_level}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {opp.opportunity_cost.explanation}
+                    </p>
+                  </div>
+                )}
+
+                {/* NEW FEATURE 4: Cluster Analysis */}
+                {opp.cluster_analysis && (
+                  <Card className="mt-3 border-green-500/30 bg-green-500/5">
+                    <CardContent className="p-3">
+                      <div className="flex items-start gap-2">
+                        <Users className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <h4 className="text-xs font-semibold text-foreground">Cluster Impact</h4>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">Configuration</span>
+                              <div className="font-semibold">{opp.cluster_analysis.gpu_count} GPUs × {opp.cluster_analysis.duration_days} days</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Total Cost</span>
+                              <div className="font-bold text-green-600">{formatCurrency(opp.cluster_analysis.total_cost)}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Total Savings</span>
+                              <div className="font-bold text-green-600">{formatCurrency(opp.cluster_analysis.total_savings)}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Cluster Risk</span>
+                              <Badge className={`text-xs ${opp.cluster_analysis.cluster_risk === 'Low' ? 'bg-green-100 text-green-700' : opp.cluster_analysis.cluster_risk === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                                {opp.cluster_analysis.cluster_risk}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Reliability Badges */}
                 <div className="flex gap-2 pt-2">
@@ -262,6 +557,82 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
                     )
                   })()}
                 </div>
+
+                {/* Decision Trace Button */}
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  size="sm"
+                  onClick={() => setExpandedDecision(expandedDecision === `${opp.gpu_model}-decision` ? null : `${opp.gpu_model}-decision`)}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Explain Decision
+                  <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${expandedDecision === `${opp.gpu_model}-decision` ? 'rotate-180' : ''}`} />
+                </Button>
+
+                {/* Decision Trace Panel */}
+                <AnimatePresence>
+                  {expandedDecision === `${opp.gpu_model}-decision` && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-2">
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-primary" />
+                          Decision Trace
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-start gap-2">
+                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-xs font-bold text-primary">1</span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-muted-foreground">
+                                Evaluated <span className="font-semibold text-foreground">{opp.providers_offering}</span> providers offering {opp.gpu_model}
+                              </p>
+                            </div>
+                          </div>
+                          {opp.excluded_providers && opp.excluded_providers.length > 0 && (
+                            <div className="flex items-start gap-2">
+                              <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span className="text-xs font-bold text-red-700">2</span>
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-muted-foreground">
+                                  Excluded <span className="font-semibold text-foreground">{opp.excluded_providers.length}</span> provider{opp.excluded_providers.length !== 1 ? 's' : ''} (low availability/reliability)
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-start gap-2">
+                            <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-xs font-bold text-amber-700">{opp.excluded_providers?.length > 0 ? '3' : '2'}</span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-muted-foreground">
+                                Ranked remaining by cost-performance score
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-xs font-bold text-green-700">{opp.excluded_providers?.length > 0 ? '4' : '3'}</span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-muted-foreground">
+                                Selected <span className="font-semibold text-foreground">{opp.cheapest_provider.provider}</span> as lowest risk option with <span className="font-semibold text-foreground">{opp.percentage_savings.toFixed(1)}%</span> savings
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Accordion Button */}
                 <Button 

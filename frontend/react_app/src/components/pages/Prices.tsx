@@ -15,9 +15,13 @@ export function Prices({ prices }: PricesProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [filterProvider, setFilterProvider] = useState<string | null>(null)
   const [filterGPU, setFilterGPU] = useState<string | null>(null)
+  const [filterRegion, setFilterRegion] = useState<string | null>(null)
+  const [minPrice, setMinPrice] = useState<string>('')
+  const [maxPrice, setMaxPrice] = useState<string>('')
 
   const providers = useMemo(() => [...new Set(prices.map(p => p.provider))], [prices])
   const gpuModels = useMemo(() => [...new Set(prices.map(p => p.gpu_model))], [prices])
+  const regions = useMemo(() => [...new Set(prices.map(p => p.region))].sort(), [prices])
 
   const sortedAndFilteredPrices = useMemo(() => {
     let filtered = prices
@@ -28,6 +32,24 @@ export function Prices({ prices }: PricesProps) {
 
     if (filterGPU) {
       filtered = filtered.filter(p => p.gpu_model === filterGPU)
+    }
+
+    if (filterRegion) {
+      filtered = filtered.filter(p => p.region === filterRegion)
+    }
+
+    if (minPrice !== '') {
+      const min = parseFloat(minPrice)
+      if (!isNaN(min)) {
+        filtered = filtered.filter(p => p.price_per_hour >= min)
+      }
+    }
+
+    if (maxPrice !== '') {
+      const max = parseFloat(maxPrice)
+      if (!isNaN(max)) {
+        filtered = filtered.filter(p => p.price_per_hour <= max)
+      }
     }
 
     return [...filtered].sort((a, b) => {
@@ -42,7 +64,7 @@ export function Prices({ prices }: PricesProps) {
       
       return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
     })
-  }, [prices, sortColumn, sortDirection, filterProvider, filterGPU])
+  }, [prices, sortColumn, sortDirection, filterProvider, filterGPU, filterRegion, minPrice, maxPrice])
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -61,7 +83,7 @@ export function Prices({ prices }: PricesProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Filters</CardTitle>
-              <CardDescription>Filter by provider or GPU model</CardDescription>
+              <CardDescription>Filter by provider, GPU model, region, or price range</CardDescription>
             </div>
             <Button
               variant="outline"
@@ -69,6 +91,9 @@ export function Prices({ prices }: PricesProps) {
               onClick={() => {
                 setFilterProvider(null)
                 setFilterGPU(null)
+                setFilterRegion(null)
+                setMinPrice('')
+                setMaxPrice('')
               }}
             >
               Clear All
@@ -105,6 +130,53 @@ export function Prices({ prices }: PricesProps) {
                   {gpu}
                 </Button>
               ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-medium mb-2">Region</div>
+            <div className="flex flex-wrap gap-2">
+              {regions.map(region => (
+                <Button
+                  key={region}
+                  variant={filterRegion === region ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterRegion(filterRegion === region ? null : region)}
+                >
+                  {region}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-medium mb-2">Price/Hour Range</div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">Min</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className="w-24 px-3 py-1.5 text-sm border border-input rounded-md bg-background"
+                />
+              </div>
+              <span className="text-muted-foreground">–</span>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">Max</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="100.00"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="w-24 px-3 py-1.5 text-sm border border-input rounded-md bg-background"
+                />
+              </div>
             </div>
           </div>
         </CardContent>
