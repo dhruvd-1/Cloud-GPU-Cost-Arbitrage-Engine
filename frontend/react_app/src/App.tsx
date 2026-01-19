@@ -4,6 +4,7 @@ import { Dashboard } from './components/pages/Dashboard'
 import { Arbitrage } from './components/pages/Arbitrage'
 import { Prices } from './components/pages/Prices'
 import { Calculator } from './components/pages/Calculator'
+import { Methodology } from './components/pages/Methodology'
 import './index.css'
 
 function App() {
@@ -59,6 +60,8 @@ function App() {
         return <Prices prices={prices} />
       case 'calculator':
         return <Calculator prices={prices} />
+      case 'methodology':
+        return <Methodology />
       default:
         return <Dashboard prices={prices} arbitrageOpportunities={arbitrage} />
     }

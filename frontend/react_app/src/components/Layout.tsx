@@ -1,9 +1,9 @@
 import { type ReactNode, useState, useEffect } from 'react'
-import { LayoutDashboard, TrendingDown, DollarSign, Calculator, Moon, Sun, Database, Activity, BookOpen } from 'lucide-react'
+import { LayoutDashboard, TrendingDown, DollarSign, Calculator, Moon, Sun, Database, Activity, BookOpen, Brain } from 'lucide-react'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { cn } from '../lib/utils'
-import { MethodologyModal } from './MethodologyModal'
+import { SystemThinkingModal } from './SystemThinkingModal'
 
 interface LayoutProps {
   children: ReactNode
@@ -14,7 +14,7 @@ interface LayoutProps {
 export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
   const [darkMode, setDarkMode] = useState(true)
   const [countdown, setCountdown] = useState(300)
-  const [showMethodology, setShowMethodology] = useState(false)
+  const [showSystemThinking, setShowSystemThinking] = useState(false)
 
   useEffect(() => {
     if (darkMode) {
@@ -39,6 +39,7 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
     { id: 'arbitrage', label: 'Arbitrage', icon: TrendingDown },
     { id: 'prices', label: 'Live Prices', icon: DollarSign },
     { id: 'calculator', label: 'Calculator', icon: Calculator },
+    { id: 'methodology', label: 'Methodology', icon: BookOpen },
   ]
 
   const formatTime = (seconds: number) => {
@@ -119,9 +120,14 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
               Auto-refresh: <span className="font-mono font-medium text-foreground">{formatTime(countdown)}</span>
             </div>
 
-            <Button variant="outline" size="sm" onClick={() => setShowMethodology(true)}>
-              <BookOpen className="w-4 h-4 mr-2" />
-              Methodology
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={() => setShowSystemThinking(true)}
+              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 border-0"
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              How This System Thinks
             </Button>
 
             <Button
@@ -140,7 +146,7 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
         </main>
       </div>
 
-      <MethodologyModal isOpen={showMethodology} onClose={() => setShowMethodology(false)} />
+      <SystemThinkingModal isOpen={showSystemThinking} onClose={() => setShowSystemThinking(false)} />
     </div>
   )
 }

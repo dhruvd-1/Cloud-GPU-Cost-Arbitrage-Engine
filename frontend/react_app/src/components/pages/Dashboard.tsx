@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, TrendingDown, Zap, DollarSign, Database, Award } from 'lucide-react'
+import { TrendingUp, TrendingDown, Zap, DollarSign, Database, Award, Lightbulb } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { formatCurrency, formatPercentage, cn, getSavingsColor } from '../../lib/utils'
@@ -20,6 +20,34 @@ export function Dashboard({ prices, arbitrageOpportunities }: DashboardProps) {
     gpusTracked: 0,
     providersActive: 0
   })
+
+  // Smart Insight Generation
+  const smartInsight = useMemo(() => {
+    const highSavingsCount = arbitrageOpportunities.filter(a => a.percentage_savings >= 80).length
+    const mediumSavingsCount = arbitrageOpportunities.filter(a => a.percentage_savings >= 50 && a.percentage_savings < 80).length
+    
+    if (highSavingsCount > 0) {
+      return {
+        message: `${highSavingsCount} GPU${highSavingsCount > 1 ? 's show' : ' shows'} >80% arbitrage opportunity under current market conditions`,
+        type: 'success' as const
+      }
+    } else if (mediumSavingsCount > 0) {
+      return {
+        message: `${mediumSavingsCount} GPU${mediumSavingsCount > 1 ? 's show' : ' shows'} >50% cost optimization potential`,
+        type: 'info' as const
+      }
+    } else if (arbitrageOpportunities.length > 0) {
+      return {
+        message: `${arbitrageOpportunities.length} arbitrage opportunit${arbitrageOpportunities.length > 1 ? 'ies' : 'y'} detected across providers`,
+        type: 'info' as const
+      }
+    } else {
+      return {
+        message: 'Market prices are currently balanced across providers',
+        type: 'neutral' as const
+      }
+    }
+  }, [arbitrageOpportunities])
 
   useEffect(() => {
     if (prices.length > 0) {
@@ -115,6 +143,29 @@ export function Dashboard({ prices, arbitrageOpportunities }: DashboardProps) {
 
   return (
     <div className="space-y-6">
+      {/* Smart Insight Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(
+          "p-4 rounded-lg border-2 flex items-start gap-3",
+          smartInsight.type === 'success' && "bg-emerald-500/10 border-emerald-500/30",
+          smartInsight.type === 'info' && "bg-blue-500/10 border-blue-500/30",
+          smartInsight.type === 'neutral' && "bg-muted/50 border-border"
+        )}
+      >
+        <Lightbulb className={cn(
+          "w-5 h-5 mt-0.5 flex-shrink-0",
+          smartInsight.type === 'success' && "text-emerald-500",
+          smartInsight.type === 'info' && "text-blue-500",
+          smartInsight.type === 'neutral' && "text-muted-foreground"
+        )} />
+        <div>
+          <div className="font-semibold text-sm mb-1">System Insight</div>
+          <div className="text-sm text-muted-foreground">{smartInsight.message}</div>
+        </div>
+      </motion.div>
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {kpiCards.map((kpi, index) => (
