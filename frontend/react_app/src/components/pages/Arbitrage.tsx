@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrendingDown, Percent, Info, ChevronDown, Download, Zap, Shield, AlertTriangle, Clock, CheckCircle, XCircle, BarChart3, Users, Calendar, Activity, Target } from 'lucide-react'
+import { TrendingDown, Percent, Info, ChevronDown, Download, Zap, Shield, AlertTriangle, Clock, CheckCircle, XCircle, BarChart3, Users, Calendar, Activity, Target, ArrowUp, ArrowDown, DollarSign } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
@@ -10,9 +10,11 @@ interface ArbitrageProps {
   opportunities: any[]
 }
 
+type SortMode = 'savings' | 'difference' | 'raw-cost'
+
 export function Arbitrage({ opportunities }: ArbitrageProps) {
   const [selectedGPU, setSelectedGPU] = useState<string | null>(null)
-  const [sortBy, setSortBy] = useState<'savings' | 'difference'>('savings')
+  const [sortBy, setSortBy] = useState<SortMode>('savings')
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
   const [expandedDecision, setExpandedDecision] = useState<string | null>(null)
   const [showCostPerTFLOP, setShowCostPerTFLOP] = useState(false)
@@ -20,19 +22,52 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
   // Cluster configuration state
   const [gpuCount, setGpuCount] = useState(1)
   const [durationDays, setDurationDays] = useState(30)
+  const [recalculatingKey, setRecalculatingKey] = useState(0)
 
-  const sortedOpportunities = [...opportunities].sort((a, b) => {
-    if (sortBy === 'savings') {
-      return b.percentage_savings - a.percentage_savings
-    }
-    return b.price_difference_usd_per_hour - a.price_difference_usd_per_hour
-  })
+  // Calculate total hours for cluster
+  const totalHours = useMemo(() => gpuCount * durationDays * 24, [gpuCount, durationDays])
 
-  const filteredOpportunities = selectedGPU
-    ? sortedOpportunities.filter(opp => opp.gpu_model === selectedGPU)
-    : sortedOpportunities
+  // Sort opportunities with all three modes
+  const sortedOpportunities = useMemo(() => {
+    return [...opportunities].sort((a, b) => {
+      if (sortBy === 'savings') {
+        return b.percentage_savings - a.percentage_savings
+      } else if (sortBy === 'difference') {
+        return b.price_difference_usd_per_hour - a.price_difference_usd_per_hour
+      } else {
+        // raw-cost: sort by cheapest price ascending
+        return a.cheapest_provider.price_per_hour - b.cheapest_provider.price_per_hour
+      }
+    })
+  }, [opportunities, sortBy])
+
+  const filteredOpportunities = useMemo(() => {
+    return selectedGPU
+      ? sortedOpportunities.filter(opp => opp.gpu_model === selectedGPU)
+      : sortedOpportunities
+  }, [sortedOpportunities, selectedGPU])
 
   const gpuModels = [...new Set(opportunities.map(opp => opp.gpu_model))]
+
+  // Calculate dynamic costs based on cluster configuration
+  const calculateClusterCost = (hourlyPrice: number) => {
+    return hourlyPrice * totalHours
+  }
+
+  const calculateMonthlyCost = (hourlyPrice: number) => {
+    return hourlyPrice * gpuCount * 730 // Average hours per month
+  }
+
+  const calculateSavings = (cheapPrice: number, expensivePrice: number) => {
+    return (expensivePrice - cheapPrice) * totalHours
+  }
+
+  // Trigger recalculation animation
+  const handleConfigChange = (newGpuCount?: number, newDuration?: number) => {
+    if (newGpuCount !== undefined) setGpuCount(newGpuCount)
+    if (newDuration !== undefined) setDurationDays(newDuration)
+    setRecalculatingKey(prev => prev + 1)
+  }
 
   const exportToCSV = () => {
     const headers = ['GPU Model', 'Cheapest Provider', 'Price', 'Most Expensive Provider', 'Price', 'Savings %', 'Annual Savings']
@@ -140,11 +175,18 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
           <p className="text-muted-foreground mt-1">Identify cost-saving opportunities across providers</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowCostPerTFLOP(!showCostPerTFLOP)}>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowCostPerTFLOP(!showCostPerTFLOP)}
+            className="hover:bg-amber-500/10 hover:border-amber-500/30 transition-all"
+          >
             <Zap className="w-4 h-4 mr-2" />
             {showCostPerTFLOP ? 'Cost per TFLOP' : 'Raw Cost'}
           </Button>
-          <Button onClick={exportToCSV}>
+          <Button 
+            onClick={exportToCSV}
+            className="bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/20 transition-all"
+          >
             <Download className="w-4 h-4 mr-2" />
             Export CSV
           </Button>
@@ -178,17 +220,37 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
             variant={sortBy === 'savings' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSortBy('savings')}
+            className={sortBy === 'savings' 
+              ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50' 
+              : 'hover:bg-amber-500/10 hover:border-amber-500/30'}
           >
             <Percent className="w-4 h-4 mr-2" />
             By Savings %
+            {sortBy === 'savings' && <ArrowDown className="w-3 h-3 ml-1" />}
           </Button>
           <Button
             variant={sortBy === 'difference' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSortBy('difference')}
+            className={sortBy === 'difference' 
+              ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50' 
+              : 'hover:bg-amber-500/10 hover:border-amber-500/30'}
           >
             <TrendingDown className="w-4 h-4 mr-2" />
             By Cost Diff
+            {sortBy === 'difference' && <ArrowDown className="w-3 h-3 ml-1" />}
+          </Button>
+          <Button
+            variant={sortBy === 'raw-cost' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSortBy('raw-cost')}
+            className={sortBy === 'raw-cost' 
+              ? 'bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50' 
+              : 'hover:bg-amber-500/10 hover:border-amber-500/30'}
+          >
+            <DollarSign className="w-4 h-4 mr-2" />
+            Raw Cost
+            {sortBy === 'raw-cost' && <ArrowUp className="w-3 h-3 ml-1" />}
           </Button>
         </div>
       </div>
@@ -224,12 +286,19 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
       )}
       
       {/* Cluster Configuration Card */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className="border-amber-500/30 bg-amber-500/5 shadow-lg shadow-amber-500/10">
         <CardContent className="py-4">
           <div className="flex items-start gap-3">
-            <Users className="w-5 h-5 text-primary mt-0.5" />
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <Users className="w-5 h-5 text-amber-600" />
+            </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-sm mb-3 text-foreground">Cluster Configuration</h3>
+              <h3 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
+                <span className="text-amber-600">Cluster Configuration</span>
+                <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
+                  Interactive
+                </Badge>
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -242,10 +311,10 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
                       min="1"
                       max="100"
                       value={gpuCount}
-                      onChange={(e) => setGpuCount(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
-                      className="w-20 px-3 py-1.5 text-sm border border-input rounded-md bg-background"
+                      onChange={(e) => handleConfigChange(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)), undefined)}
+                      className="w-24 px-3 py-2 text-sm border-2 border-amber-500/30 rounded-md bg-background focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
                     />
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground font-medium">
                       {gpuCount === 1 ? 'Single GPU' : `${gpuCount}x GPUs`}
                     </span>
                   </div>
@@ -261,23 +330,27 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
                       min="1"
                       max="365"
                       value={durationDays}
-                      onChange={(e) => setDurationDays(Math.max(1, Math.min(365, parseInt(e.target.value) || 30)))}
-                      className="w-20 px-3 py-1.5 text-sm border border-input rounded-md bg-background"
+                      onChange={(e) => handleConfigChange(undefined, Math.max(1, Math.min(365, parseInt(e.target.value) || 30)))}
+                      className="w-24 px-3 py-2 text-sm border-2 border-amber-500/30 rounded-md bg-background focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
                     />
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground font-medium">
                       {durationDays < 30 ? `${durationDays} days` : durationDays === 30 ? '1 month' : `~${Math.round(durationDays / 30)} months`}
                     </span>
                   </div>
                 </div>
               </div>
-              {(gpuCount > 1 || durationDays !== 30) && (
-                <div className="mt-3 p-2 bg-background rounded-md border border-border">
-                  <p className="text-xs text-muted-foreground">
-                    <Info className="w-3 h-3 inline mr-1" />
-                    Cluster analysis will show total costs and amplified risks for {gpuCount}x GPU{gpuCount !== 1 ? 's' : ''} over {durationDays} day{durationDays !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              )}
+              <motion.div 
+                key={recalculatingKey}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 p-3 bg-amber-500/10 rounded-lg border border-amber-500/30"
+              >
+                <p className="text-xs text-amber-900 dark:text-amber-100 font-medium flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5" />
+                  <span>Calculated for <strong>{gpuCount}x GPU{gpuCount !== 1 ? 's' : ''}</strong> over <strong>{durationDays} day{durationDays !== 1 ? 's' : ''}</strong></span>
+                  <span className="ml-auto text-amber-700 dark:text-amber-300">({totalHours.toLocaleString()} hrs)</span>
+                </p>
+              </motion.div>
             </div>
           </div>
         </CardContent>
@@ -285,32 +358,45 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
 
       {/* Opportunities List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filteredOpportunities.map((opp, index) => (
-          <motion.div
-            key={`${opp.gpu_model}-${index}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <Card className="hover:shadow-lg transition-all border-muted">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-xl">{opp.gpu_model}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {opp.providers_offering} providers offering this GPU
-                    </p>
-                  </div>
-                  <Badge 
-                    variant="success" 
-                    className={`text-lg px-3 py-1 ${getSavingsColor(opp.percentage_savings)}`}
-                  >
-                    {opp.percentage_savings >= 0 ? '+' : ''}{opp.percentage_savings.toFixed(1)}%
-                  </Badge>
-                </div>
-              </CardHeader>
+        <AnimatePresence mode="popLayout">
+          {filteredOpportunities.map((opp, index) => {
+            const clusterCostCheap = calculateClusterCost(opp.cheapest_provider.price_per_hour)
+            const clusterCostExpensive = calculateClusterCost(opp.most_expensive_provider.price_per_hour)
+            const monthlyCost = calculateMonthlyCost(opp.cheapest_provider.price_per_hour)
+            const totalSavings = calculateSavings(opp.cheapest_provider.price_per_hour, opp.most_expensive_provider.price_per_hour)
+            
+            return (
+              <motion.div
+                key={`${opp.gpu_model}-${sortBy}`}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ 
+                  layout: { type: "spring", stiffness: 300, damping: 30 },
+                  opacity: { duration: 0.2 },
+                  delay: index * 0.03
+                }}
+              >
+                <Card className="hover:shadow-lg transition-all border-muted">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-xl">{opp.gpu_model}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {opp.providers_offering} providers offering this GPU
+                        </p>
+                      </div>
+                      <Badge 
+                        variant="success" 
+                        className={`text-lg px-3 py-1 ${getSavingsColor(opp.percentage_savings)}`}
+                      >
+                        {opp.percentage_savings >= 0 ? '+' : ''}{opp.percentage_savings.toFixed(1)}%
+                      </Badge>
+                    </div>
+                  </CardHeader>
 
-              <CardContent className="space-y-4">
+                  <CardContent className="space-y-4">
                 {/* Provider Comparison */}
                 <div className="grid grid-cols-2 gap-4">
                   {/* Cheapest */}
@@ -388,50 +474,67 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
                     </div>
                   )}
 
-                  {/* Confidence Intervals */}
-                  {opp.cost_estimate ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Estimated Monthly Cost</span>
-                        <span className="font-mono font-medium">
-                          {formatCurrency(opp.cost_estimate.monthly[0])} – {formatCurrency(opp.cost_estimate.monthly[1])}
-                        </span>
+                  {/* Dynamic Cost Display with Animation */}
+                  <motion.div 
+                    key={`${recalculatingKey}-${opp.gpu_model}`}
+                    initial={{ backgroundColor: 'rgba(251, 191, 36, 0.2)' }}
+                    animate={{ backgroundColor: 'rgba(251, 191, 36, 0)' }}
+                    transition={{ duration: 1.5 }}
+                    className="space-y-2 p-3 rounded-lg border border-amber-500/20"
+                  >
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="text-muted-foreground font-medium">Estimated Monthly Cost</span>
+                      <Badge className="bg-amber-500/10 text-amber-700 border-amber-500/30 text-xs">
+                        Live Calculation
+                      </Badge>
+                    </div>
+                    <motion.div 
+                      key={`monthly-${monthlyCost}`}
+                      initial={{ scale: 1.1, color: 'rgb(217, 119, 6)' }}
+                      animate={{ scale: 1, color: 'inherit' }}
+                      transition={{ duration: 0.5 }}
+                      className="font-mono font-bold text-lg"
+                    >
+                      {formatCurrency(monthlyCost)}
+                      <span className="text-sm text-muted-foreground font-normal ml-1">/month</span>
+                    </motion.div>
+                    
+                    <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border/50">
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Total Cost</div>
+                        <motion.div 
+                          key={`total-${clusterCostCheap}`}
+                          initial={{ scale: 1.05 }}
+                          animate={{ scale: 1 }}
+                          className="font-bold text-sm"
+                        >
+                          {formatCurrency(clusterCostCheap)}
+                        </motion.div>
                       </div>
-                      <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="absolute h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full"
-                          style={{ 
-                            left: '0%',
-                            right: `${Math.max(0, 100 - (opp.cost_estimate.volatility_factor * 100))}%`
-                          }}
-                        />
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">You Save</div>
+                        <motion.div 
+                          key={`savings-${totalSavings}`}
+                          initial={{ scale: 1.05 }}
+                          animate={{ scale: 1 }}
+                          className="font-bold text-sm text-green-600"
+                        >
+                          {formatCurrency(totalSavings)}
+                        </motion.div>
                       </div>
-                      <div className="text-xs text-muted-foreground text-right">
-                        Volatility: {(opp.cost_estimate.volatility_factor * 100).toFixed(1)}%
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">vs Expensive</div>
+                        <motion.div 
+                          key={`expensive-${clusterCostExpensive}`}
+                          initial={{ scale: 1.05 }}
+                          animate={{ scale: 1 }}
+                          className="font-bold text-sm text-red-600"
+                        >
+                          {formatCurrency(clusterCostExpensive)}
+                        </motion.div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground mb-1">Hourly</div>
-                        <div className="font-bold text-sm">
-                          {formatCurrency(opp.price_difference_usd_per_hour)}
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground mb-1">Monthly</div>
-                        <div className="font-bold text-sm">
-                          {formatCurrency(opp.price_difference_usd_per_hour * 730)}
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground mb-1">Annual</div>
-                        <div className="font-bold text-sm text-green-500">
-                          {formatCurrency(opp.annual_savings_usd)}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  </motion.div>
 
                   {/* Break-Even Analysis */}
                   {opp.break_even && (
@@ -504,38 +607,70 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
                   </div>
                 )}
 
-                {/* NEW FEATURE 4: Cluster Analysis */}
-                {opp.cluster_analysis && (
-                  <Card className="mt-3 border-green-500/30 bg-green-500/5">
-                    <CardContent className="p-3">
-                      <div className="flex items-start gap-2">
-                        <Users className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 space-y-2">
-                          <h4 className="text-xs font-semibold text-foreground">Cluster Impact</h4>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <span className="text-muted-foreground">Configuration</span>
-                              <div className="font-semibold">{opp.cluster_analysis.gpu_count} GPUs × {opp.cluster_analysis.duration_days} days</div>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Total Cost</span>
-                              <div className="font-bold text-green-600">{formatCurrency(opp.cluster_analysis.total_cost)}</div>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Total Savings</span>
-                              <div className="font-bold text-green-600">{formatCurrency(opp.cluster_analysis.total_savings)}</div>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Cluster Risk</span>
-                              <Badge className={`text-xs ${opp.cluster_analysis.cluster_risk === 'Low' ? 'bg-green-100 text-green-700' : opp.cluster_analysis.cluster_risk === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
-                                {opp.cluster_analysis.cluster_risk}
+                {/* NEW FEATURE 4: Cluster Analysis - Now Dynamic */}
+                {(gpuCount > 1 || durationDays !== 30) && (
+                  <motion.div
+                    key={`cluster-${recalculatingKey}-${opp.gpu_model}`}
+                    initial={{ scale: 0.98, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Card className="mt-3 border-green-500/30 bg-green-500/5">
+                      <CardContent className="p-3">
+                        <div className="flex items-start gap-2">
+                          <Users className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-semibold text-foreground">Cluster Impact</h4>
+                              <Badge className="bg-green-500/20 text-green-700 border-green-500/30 text-xs">
+                                Dynamic
                               </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Configuration</span>
+                                <div className="font-semibold">{gpuCount} GPUs × {durationDays} days</div>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Total Cost</span>
+                                <motion.div 
+                                  key={`cluster-cost-${clusterCostCheap}`}
+                                  initial={{ scale: 1.1, color: 'rgb(22, 163, 74)' }}
+                                  animate={{ scale: 1, color: 'rgb(22, 163, 74)' }}
+                                  transition={{ duration: 0.5 }}
+                                  className="font-bold"
+                                >
+                                  {formatCurrency(clusterCostCheap)}
+                                </motion.div>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Total Savings</span>
+                                <motion.div 
+                                  key={`cluster-savings-${totalSavings}`}
+                                  initial={{ scale: 1.1, color: 'rgb(22, 163, 74)' }}
+                                  animate={{ scale: 1, color: 'rgb(22, 163, 74)' }}
+                                  transition={{ duration: 0.5 }}
+                                  className="font-bold"
+                                >
+                                  {formatCurrency(totalSavings)}
+                                </motion.div>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Cluster Risk</span>
+                                <Badge className={`text-xs ${
+                                  gpuCount <= 4 ? 'bg-green-100 text-green-700' : 
+                                  gpuCount <= 10 ? 'bg-amber-100 text-amber-700' : 
+                                  'bg-red-100 text-red-700'
+                                }`}>
+                                  {gpuCount <= 4 ? 'Low' : gpuCount <= 10 ? 'Medium' : 'High'}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 )}
 
                 {/* Reliability Badges */}
@@ -683,7 +818,9 @@ export function Arbitrage({ opportunities }: ArbitrageProps) {
               </CardContent>
             </Card>
           </motion.div>
-        ))}
+        )
+      })}
+        </AnimatePresence>
       </div>
 
       {filteredOpportunities.length === 0 && (

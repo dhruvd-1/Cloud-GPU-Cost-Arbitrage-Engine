@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Layout } from './components/Layout'
 import { Dashboard } from './components/pages/Dashboard'
-import { Arbitrage } from './components/pages/Arbitrage'
-import { Prices } from './components/pages/Prices'
-import { Calculator } from './components/pages/Calculator'
+import { Arbitrage } from './components/pages/ArbitrageNew'
+import { Prices } from './components/pages/PricesNew'
+import { Calculator } from './components/pages/CalculatorNew'
 import './index.css'
 
 function App() {
